@@ -10,11 +10,6 @@ module RSpec
 
       attr_accessor :example
 
-      def running_example
-        RSpec.deprecate('running_example', 'example')
-        example
-      end
-
       def self.world
         RSpec.world
       end
@@ -42,7 +37,6 @@ module RSpec
         module_eval(<<-END_RUBY, __FILE__, __LINE__)
           def self.#{name}(desc=nil, options={}, &block)
             options.update(:pending => true) unless block
-            options.update(:caller => caller)
             options.update(#{extra_options.inspect})
             examples << RSpec::Core::Example.new(self, desc, options, block)
             examples.last
@@ -95,7 +89,7 @@ module RSpec
       end
 
       def self.descendant_filtered_examples
-        @descendant_filtered_examples ||= filtered_examples + children.collect{|c| c.descendant_filtered_examples}.flatten
+        @descendant_filtered_examples ||= filtered_examples + children.inject([]){|l,c| l + c.descendant_filtered_examples}
       end
 
       def self.metadata
@@ -111,7 +105,6 @@ module RSpec
         @_subclass_count += 1
         args << {} unless args.last.is_a?(Hash)
         args.last.update(:example_group_block => example_group_block)
-        args.last.update(:caller => caller)
 
         # TODO 2010-05-05: Because we don't know if const_set is thread-safe
         child = const_set(
@@ -138,7 +131,7 @@ module RSpec
       end
 
       def self.descendants
-        @_descendants ||= [self] + children.collect {|c| c.descendants}.flatten
+        @_descendants ||= [self] + children.inject([]) {|list, c| list + c.descendants}
       end
 
       def self.ancestors
@@ -159,12 +152,14 @@ module RSpec
       end
 
       def self.store_before_all_ivars(example_group_instance)
+        return if example_group_instance.instance_variables.empty?
         example_group_instance.instance_variables.each { |ivar| 
           before_all_ivars[ivar] = example_group_instance.instance_variable_get(ivar)
         }
       end
 
       def self.assign_before_all_ivars(ivars, example_group_instance)
+        return if ivars.empty?
         ivars.each { |ivar, val| example_group_instance.instance_variable_set(ivar, val) }
       end
 
@@ -196,12 +191,25 @@ module RSpec
       def self.eval_after_alls(example_group_instance)
         return if descendant_filtered_examples.empty?
         assign_before_all_ivars(before_all_ivars, example_group_instance)
-        run_hook!(:after, :all, example_group_instance)
+
+        begin
+          run_hook!(:after, :all, example_group_instance)
+        rescue => e
+          # TODO: come up with a better solution for this.
+          RSpec.configuration.reporter.message <<-EOS
+
+An error occurred in an after(:all) hook.
+  #{e.class}: #{e.message}
+  occurred at #{e.backtrace.first}
+
+        EOS
+        end
+
         world.run_hook_filtered(:after, :all, self, example_group_instance) if top_level?
       end
 
       def self.around_hooks
-        @around_hooks ||= (world.find_hook(:around, :each, self) + ancestors.reverse.map{|a| a.find_hook(:around, :each, self)}).flatten
+        @around_hooks ||= (world.find_hook(:around, :each, self) + ancestors.reverse.inject([]){|l,a| l + a.find_hook(:around, :each, self)})
       end
 
       def self.run(reporter)
@@ -209,7 +217,6 @@ module RSpec
           RSpec.clear_remaining_example_groups if top_level?
           return
         end
-        @reporter = reporter
         example_group_instance = new
         reporter.example_group_started(self)
 
@@ -262,7 +269,7 @@ module RSpec
       def self.declaration_line_numbers
         @declaration_line_numbers ||= [metadata[:example_group][:line_number]] +
           examples.collect {|e| e.metadata[:line_number]} +
-          children.collect {|c| c.declaration_line_numbers}.flatten
+          children.inject([]) {|l,c| l + c.declaration_line_numbers}
       end
 
       def self.top_level_description
@@ -289,6 +296,7 @@ module RSpec
         begin
           instance_eval(&hook)
         rescue Exception => e
+          raise unless example
           example.set_exception(e)
         end
       end

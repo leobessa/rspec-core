@@ -1,5 +1,26 @@
 ## rspec-core release history (incomplete)
 
+### 2.0.1 / in development
+
+[full changelog](http://github.com/rspec/rspec-core/compare/v2.0.0...master)
+
+* Bug fixes
+  * restore color when using spork + autotest
+  * Pending examples without docstrings render the correct message (Josep M. Bach)
+  * Fixed bug where a failure in a spec file ending in anything but _spec.rb would
+    fail in a confusing way.
+
+### 2.0.0 / 2010-10-10
+
+[full changelog](http://github.com/rspec/rspec-core/compare/v2.0.0.rc...v2.0.0)
+
+* RSpec-1 compatibility
+  * Rake task uses ENV["SPEC"] as file list if present
+
+* Bug fixes
+  * Bug Fix: optparse --out foo.txt (Leonardo Bessa)
+  * Suppress color codes for non-tty output (except autotest)
+
 ### 2.0.0.rc / 2010-10-05
 
 [full changelog](http://github.com/rspec/rspec-core/compare/v2.0.0.beta.22...v2.0.0.rc)

@@ -55,20 +55,6 @@ module RSpec::Core
       end
     end
 
-    context "with warnings on" do
-      before { RSpec.stub(:deprecate) }
-
-      it "renders -w before the -S" do
-        task.warning = true
-        spec_command.should =~ /^-w -S rspec/
-      end
-
-      it "warns about deprecation" do
-        RSpec.should_receive(:deprecate)
-        task.warning = true
-      end
-    end
-
     context "with ruby options" do
       it "renders them before -S" do
         task.ruby_opts = "-w"
@@ -116,19 +102,19 @@ module RSpec::Core
       end
     end
 
-    context "with spec_opts" do
-      before { RSpec.stub(:deprecate) }
-
-      it "warns about deprecation" do
-        RSpec.should_receive(:deprecate)
-        task.spec_opts = "-Ifoo"
+    context "with SPEC=path/to/file" do
+      before do
+        @orig_spec = ENV["SPEC"]
+        ENV["SPEC"] = "path/to/file"
       end
 
-      it "adds options as rspec_opts" do
-        task.spec_opts = "-Ifoo"
-        spec_command.should =~ /rspec -Ifoo/
+      after do
+        ENV["SPEC"] = @orig_spec
+      end
+
+      it "sets files to run" do
+        task.__send__(:files_to_run).should eq(["path/to/file"])
       end
     end
-
   end
 end

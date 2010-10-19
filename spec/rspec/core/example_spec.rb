@@ -9,13 +9,6 @@ describe RSpec::Core::Example, :parent_metadata => 'sample' do
     example_group.example('example description')
   end
 
-  describe "#behaviour" do
-    it "is deprecated" do
-      RSpec.should_receive(:deprecate)
-      example_instance.behaviour
-    end
-  end
-
   describe '#described_class' do
     it "returns the class (if any) of the outermost example group" do
       described_class.should == RSpec::Core::Example
@@ -114,18 +107,6 @@ describe RSpec::Core::Example, :parent_metadata => 'sample' do
         "after",
         "around (after)"
       ])
-    end
-  end
-
-  describe "#in_block?" do
-    before do
-      example.should_not be_in_block
-    end
-    it "is only true during the example (but not before or after)" do
-      example.should be_in_block
-    end
-    after do
-      example.should_not be_in_block
     end
   end
 

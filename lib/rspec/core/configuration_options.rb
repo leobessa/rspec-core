@@ -28,6 +28,7 @@ module RSpec
         argv << "--color"     if options[:color_enabled]
         argv << "--profile"   if options[:profile_examples]
         argv << "--backtrace" if options[:full_backtrace]
+        argv << "--autotest"  if options[:autotest]
         argv << "--format"       << options[:formatter]               if options[:formatter]
         argv << "--line_number"  << options[:line_number]             if options[:line_number]
         argv << "--example"      << options[:full_description].source if options[:full_description]
@@ -90,9 +91,7 @@ module RSpec
 
       def local_options_file(options)
         return options[:options_file] if options[:options_file]
-        return LOCAL_OPTIONS_FILE if File.exist?(LOCAL_OPTIONS_FILE)
-        RSpec.deprecate("spec/spec.opts", "./.rspec or ~/.rspec", "2.0.0") if File.exist?("spec/spec.opts")
-        "spec/spec.opts"
+        LOCAL_OPTIONS_FILE
       end
     end
   end
